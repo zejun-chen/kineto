@@ -1,5 +1,5 @@
 #include "XpuptiActivityApi.h"
-#include "XPUActivityProfiler.h"
+#include "XpuptiActivityProfiler.h"
 
 #include <chrono>
 

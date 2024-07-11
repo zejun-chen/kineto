@@ -1,4 +1,4 @@
-#include "XPUActivityProfiler.h"
+#include "XpuptiActivityProfiler.h"
 
 #include <string>
 

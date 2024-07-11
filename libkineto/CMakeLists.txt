@@ -177,8 +177,11 @@ target_include_directories(kineto_base PUBLIC
       $<BUILD_INTERFACE:${CUPTI_INCLUDE_DIR}>
       $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
       $<BUILD_INTERFACE:${ROCTRACER_INCLUDE_DIR}>
-      $<BUILD_INTERFACE:${ROCM_INCLUDE_DIRS}>
-      $<BUILD_INTERFACE:${SYCL_INCLUDE_DIR}>)
+      $<BUILD_INTERFACE:${ROCM_INCLUDE_DIRS}>)
+
+if(NOT LIBKINETO_NOXPUPTI)
+  target_include_directories(kineto_base PUBLIC ${SYCL_INCLUDE_DIR})
+endif()
 
 target_include_directories(kineto_api PUBLIC
       $<BUILD_INTERFACE:${FMT_INCLUDE_DIR}>

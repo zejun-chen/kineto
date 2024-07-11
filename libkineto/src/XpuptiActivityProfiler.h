@@ -3,7 +3,7 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "XPUProfilerMacros.h"
+#include "XpuptiProfilerMacros.h"
 
 namespace KINETO_NAMESPACE {
 

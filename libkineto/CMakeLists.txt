@@ -61,6 +61,12 @@ IF (NOT ROCM_SOURCE_DIR AND NOT ROCTRACER_INCLUDE_DIR)
     set(LIBKINETO_NOROCTRACER ON CACHE BOOL "" FORCE)
 endif()
 
+# Set LIBKINETO_NOXPUPTI to explicitly disable XPUPTI
+# Otherwise, XPUPTI is disabled if not found
+IF (NOT SYCL_INCLUDE_DIR OR NOT XPU_xpupti_LIBRARY)
+    set(LIBKINETO_NOXPUPTI ON CACHE BOOL "" FORCE)
+endif()
+
 # Define file lists
 if (LIBKINETO_NOCUPTI AND LIBKINETO_NOROCTRACER AND LIBKINETO_NOXPUPTI)
     get_filelist("get_libkineto_cpu_only_srcs(with_api=False)" LIBKINETO_SRCS)
@@ -210,7 +216,7 @@ if(CUDA_nvperf_host_LIBRARY)
   target_link_libraries(kineto "${CUDA_nvperf_host_LIBRARY}")
 endif()
 if(NOT LIBKINETO_NOXPUPTI)
-  target_link_libraries(kineto Pti::pti_view)
+  target_link_libraries(kineto "${XPU_xpupti_LIBRARY}")
 endif()
 target_link_libraries(kineto $<BUILD_INTERFACE:fmt::fmt-header-only>)
 add_dependencies(kineto fmt::fmt-header-only)

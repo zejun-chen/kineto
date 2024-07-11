@@ -1,6 +1,6 @@
 #pragma once
 
-#include "XPUProfilerMacros.h"
+#include "XpuptiProfilerMacros.h"
 
 #include <assert.h>
 #include <stdlib.h>

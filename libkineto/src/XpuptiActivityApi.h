@@ -1,7 +1,7 @@
 #pragma once
 
 #include "XpuptiActivityBuffer.h"
-#include "XPUProfilerMacros.h"
+#include "XpuptiProfilerMacros.h"
 
 #include <atomic>
 #include <functional>

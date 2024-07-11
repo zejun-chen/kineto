@@ -171,30 +171,30 @@ void XpuptiActivityApi::bufferCompleted(
 #endif
 
 void XpuptiActivityApi::enableXpuptiActivities(
-    const std::set<act_t>& selected_activities) {
+    const std::set<ActivityType>& selected_activities) {
 #ifdef HAS_XPUPTI
   XPUPTI_CALL(ptiViewSetCallbacks(
       bufferRequestedTrampoline, bufferCompletedTrampoline));
 
   externalCorrelationEnabled_ = false;
   for (const auto& activity : selected_activities) {
-    if (activity == act_t::GPU_MEMCPY) {
+    if (activity == ActivityType::GPU_MEMCPY) {
       XPUPTI_CALL(ptiViewEnable(PTI_VIEW_DEVICE_GPU_MEM_COPY));
     }
-    if (activity == act_t::GPU_MEMSET) {
+    if (activity == ActivityType::GPU_MEMSET) {
       XPUPTI_CALL(ptiViewEnable(PTI_VIEW_DEVICE_GPU_MEM_FILL));
     }
-    if (activity == act_t::CONCURRENT_KERNEL) {
+    if (activity == ActivityType::CONCURRENT_KERNEL) {
       XPUPTI_CALL(ptiViewEnable(PTI_VIEW_DEVICE_GPU_KERNEL));
     }
-    if (activity == act_t::EXTERNAL_CORRELATION) {
+    if (activity == ActivityType::EXTERNAL_CORRELATION) {
       XPUPTI_CALL(ptiViewEnable(PTI_VIEW_EXTERNAL_CORRELATION));
       externalCorrelationEnabled_ = true;
     }
-    if (activity == act_t::XPU_RUNTIME) {
+    if (activity == ActivityType::XPU_RUNTIME) {
       XPUPTI_CALL(ptiViewEnable(PTI_VIEW_SYCL_RUNTIME_CALLS));
     }
-    if (activity == act_t::OVERHEAD) {
+    if (activity == ActivityType::OVERHEAD) {
       XPUPTI_CALL(ptiViewEnable(PTI_VIEW_COLLECTION_OVERHEAD));
     }
   }
@@ -206,25 +206,25 @@ void XpuptiActivityApi::enableXpuptiActivities(
 }
 
 void XpuptiActivityApi::disablePtiActivities(
-    const std::set<act_t>& selected_activities) {
+    const std::set<ActivityType>& selected_activities) {
 #ifdef HAS_XPUPTI
   for (const auto& activity : selected_activities) {
-    if (activity == act_t::GPU_MEMCPY) {
+    if (activity == ActivityType::GPU_MEMCPY) {
       XPUPTI_CALL(ptiViewDisable(PTI_VIEW_DEVICE_GPU_MEM_COPY));
     }
-    if (activity == act_t::GPU_MEMSET) {
+    if (activity == ActivityType::GPU_MEMSET) {
       XPUPTI_CALL(ptiViewDisable(PTI_VIEW_DEVICE_GPU_MEM_FILL));
     }
-    if (activity == act_t::CONCURRENT_KERNEL) {
+    if (activity == ActivityType::CONCURRENT_KERNEL) {
       XPUPTI_CALL(ptiViewDisable(PTI_VIEW_DEVICE_GPU_KERNEL));
     }
-    if (activity == act_t::EXTERNAL_CORRELATION) {
+    if (activity == ActivityType::EXTERNAL_CORRELATION) {
       XPUPTI_CALL(ptiViewDisable(PTI_VIEW_EXTERNAL_CORRELATION));
     }
-    if (activity == act_t::XPU_RUNTIME) {
+    if (activity == ActivityType::XPU_RUNTIME) {
       XPUPTI_CALL(ptiViewDisable(PTI_VIEW_SYCL_RUNTIME_CALLS));
     }
-    if (activity == act_t::OVERHEAD) {
+    if (activity == ActivityType::OVERHEAD) {
       XPUPTI_CALL(ptiViewDisable(PTI_VIEW_COLLECTION_OVERHEAD));
     }
   }

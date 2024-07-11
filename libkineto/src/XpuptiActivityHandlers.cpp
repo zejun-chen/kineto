@@ -6,7 +6,7 @@ namespace KINETO_NAMESPACE {
 
 // =========== Session Private Methods ============= //
 void XpuptiActivityProfilerSession::removeCorrelatedPtiActivities(
-    const itrace_t* act1) {
+    const ITraceActivity* act1) {
   const auto key = act1->correlationId();
   const auto& it = correlatedPtiActivities_.find(key);
   if (it != correlatedPtiActivities_.end()) {
@@ -15,15 +15,15 @@ void XpuptiActivityProfilerSession::removeCorrelatedPtiActivities(
   return;
 }
 
-void XpuptiActivityProfilerSession::checkTimestampOrder(const itrace_t* act1) {
+void XpuptiActivityProfilerSession::checkTimestampOrder(const ITraceActivity* act1) {
   const auto& it = correlatedPtiActivities_.find(act1->correlationId());
   if (it == correlatedPtiActivities_.end()) {
     correlatedPtiActivities_.insert({act1->correlationId(), act1});
     return;
   }
 
-  const itrace_t* act2 = it->second;
-  if (act2->type() == act_t::XPU_RUNTIME) {
+  const ITraceActivity* act2 = it->second;
+  if (act2->type() == ActivityType::XPU_RUNTIME) {
     std::swap(act1, act2);
   }
   if (act1->timestamp() > act2->timestamp()) {
@@ -38,7 +38,7 @@ void XpuptiActivityProfilerSession::checkTimestampOrder(const itrace_t* act1) {
   }
 }
 
-inline bool XpuptiActivityProfilerSession::outOfRange(const itrace_t& act) {
+inline bool XpuptiActivityProfilerSession::outOfRange(const ITraceActivity& act) {
   bool out_of_range = act.timestamp() < captureWindowStartTime_ ||
       (act.timestamp() + act.duration()) > captureWindowEndTime_;
   if (out_of_range) {
@@ -53,7 +53,7 @@ inline bool XpuptiActivityProfilerSession::outOfRange(const itrace_t& act) {
   return out_of_range;
 }
 
-const itrace_t* XpuptiActivityProfilerSession::linkedActivity(
+const ITraceActivity* XpuptiActivityProfilerSession::linkedActivity(
     int32_t correlationId,
     const std::unordered_map<int64_t, int64_t>& correlationMap) {
   const auto& it = correlationMap.find(correlationId);
@@ -97,13 +97,13 @@ inline void XpuptiActivityProfilerSession::handleCorrelationActivity(
 
 void XpuptiActivityProfilerSession::handleRuntimeActivity(
     const pti_view_record_sycl_runtime* activity,
-    logger_t* logger) {
+    ActivityLogger* logger) {
   traceBuffer_.span.opCount += 1;
   traceBuffer_.gpuOpCount += 1;
-  const itrace_t* linked =
+  const ITraceActivity* linked =
       linkedActivity(activity->_correlation_id, cpuCorrelationMap_);
   traceBuffer_.emplace_activity(
-      traceBuffer_.span, act_t::XPU_RUNTIME, std::string(activity->_name));
+      traceBuffer_.span, ActivityType::XPU_RUNTIME, std::string(activity->_name));
   auto& runtime_activity = traceBuffer_.activities.back();
   runtime_activity->startTime = activity->_start_timestamp;
   runtime_activity->endTime = activity->_end_timestamp;
@@ -131,14 +131,14 @@ void XpuptiActivityProfilerSession::handleRuntimeActivity(
 
 void XpuptiActivityProfilerSession::handleKernelActivity(
     const pti_view_record_kernel* activity,
-    logger_t* logger) {
+    ActivityLogger* logger) {
   traceBuffer_.span.opCount += 1;
   traceBuffer_.gpuOpCount += 1;
-  const itrace_t* linked =
+  const ITraceActivity* linked =
       linkedActivity(activity->_correlation_id, cpuCorrelationMap_);
   traceBuffer_.emplace_activity(
       traceBuffer_.span,
-      act_t::CONCURRENT_KERNEL,
+      ActivityType::CONCURRENT_KERNEL,
       std::string(activity->_name));
   auto& kernel_activity = traceBuffer_.activities.back();
   kernel_activity->startTime = activity->_start_timestamp;
@@ -193,14 +193,14 @@ inline std::string bandwidth(pti_view_memory_record_type* activity) {
 
 void XpuptiActivityProfilerSession::handleMemcpyActivity(
     const pti_view_record_memory_copy* activity,
-    logger_t* logger) {
+    ActivityLogger* logger) {
   traceBuffer_.span.opCount += 1;
   traceBuffer_.gpuOpCount += 1;
-  const itrace_t* linked =
+  const ITraceActivity* linked =
       linkedActivity(activity->_correlation_id, cpuCorrelationMap_);
   traceBuffer_.emplace_activity(
       traceBuffer_.span,
-      act_t::GPU_MEMCPY,
+      ActivityType::GPU_MEMCPY,
       memcpyName(
           activity->_memcpy_type, activity->_mem_src, activity->_mem_dst));
   auto& memcpy_activity = traceBuffer_.activities.back();
@@ -241,14 +241,14 @@ void XpuptiActivityProfilerSession::handleMemcpyActivity(
 
 void XpuptiActivityProfilerSession::handleMemsetActivity(
     const pti_view_record_memory_fill* activity,
-    logger_t* logger) {
+    ActivityLogger* logger) {
   traceBuffer_.span.opCount += 1;
   traceBuffer_.gpuOpCount += 1;
-  const itrace_t* linked =
+  const ITraceActivity* linked =
       linkedActivity(activity->_correlation_id, cpuCorrelationMap_);
   traceBuffer_.emplace_activity(
       traceBuffer_.span,
-      act_t::GPU_MEMSET,
+      ActivityType::GPU_MEMSET,
       fmt::format(
           "Memset ({})", ptiViewMemoryTypeToString(activity->_mem_type)));
   auto& memset_activity = traceBuffer_.activities.back();
@@ -289,10 +289,10 @@ void XpuptiActivityProfilerSession::handleMemsetActivity(
 
 void XpuptiActivityProfilerSession::handleOverheadActivity(
     const pti_view_record_overhead* activity,
-    logger_t* logger) {
+    ActivityLogger* logger) {
   traceBuffer_.emplace_activity(
       traceBuffer_.span,
-      act_t::OVERHEAD,
+      ActivityType::OVERHEAD,
       ptiViewOverheadKindToString(activity->_overhead_kind));
   auto& overhead_activity = traceBuffer_.activities.back();
   overhead_activity->startTime = activity->_overhead_start_timestamp_ns;
@@ -317,7 +317,7 @@ void XpuptiActivityProfilerSession::handleOverheadActivity(
 
 void XpuptiActivityProfilerSession::handlePtiActivity(
     const pti_view_record_base* record,
-    logger_t* logger) {
+    ActivityLogger* logger) {
   switch (record->_view_kind) {
     case PTI_VIEW_EXTERNAL_CORRELATION:
       handleCorrelationActivity(

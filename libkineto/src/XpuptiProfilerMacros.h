@@ -23,11 +23,6 @@ using namespace libkineto;
   }
 
 class XpuptiActivityApi;
-
-using act_t = ActivityType;
-using logger_t = ActivityLogger;
-using itrace_t = ITraceActivity;
-using gtrace_t = GenericTraceActivity;
 using DeviceIndex_t = int8_t;
 
 } // namespace KINETO_NAMESPACE

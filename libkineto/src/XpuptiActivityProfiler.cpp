@@ -13,7 +13,7 @@ std::vector<std::array<unsigned char, 16>>
 XpuptiActivityProfilerSession::XpuptiActivityProfilerSession(
     XpuptiActivityApi& xpti,
     const libkineto::Config& config,
-    const std::set<act_t>& activity_types)
+    const std::set<ActivityType>& activity_types)
     : xpti_(xpti), config_(config.clone()), activity_types_(activity_types) {
   xpti_.setMaxBufferSize(config_->activitiesMaxGpuBufferSize());
   xpti_.enableXpuptiActivities(activity_types_);
@@ -36,7 +36,7 @@ void XpuptiActivityProfilerSession::stop() {
       libkineto::timeSinceEpoch(std::chrono::high_resolution_clock::now());
 }
 
-void XpuptiActivityProfilerSession::processTrace(logger_t& logger) {
+void XpuptiActivityProfilerSession::processTrace(ActivityLogger& logger) {
   traceBuffer_.span = libkineto::TraceSpan(
       profilerStartTs_, profilerEndTs_, "__xpu_profiler__");
   traceBuffer_.span.iteration = iterationCount_++;
@@ -53,7 +53,7 @@ void XpuptiActivityProfilerSession::processTrace(logger_t& logger) {
 }
 
 void XpuptiActivityProfilerSession::processTrace(
-    logger_t& logger,
+    ActivityLogger& logger,
     libkineto::getLinkedActivityCallback get_linked_activity,
     int64_t captureWindowStartTime,
     int64_t captureWindowEndTime) {
@@ -136,20 +136,20 @@ DeviceIndex_t XpuptiActivityProfilerSession::getDeviceIdxFromUUID(
 }
 
 // =========== ActivityProfiler Public Methods ============= //
-const std::set<act_t> kXpuTypes{
-    act_t::GPU_MEMCPY,
-    act_t::GPU_MEMSET,
-    act_t::CONCURRENT_KERNEL,
-    act_t::XPU_RUNTIME,
-    act_t::EXTERNAL_CORRELATION,
-    act_t::OVERHEAD,
+const std::set<ActivityType> kXpuTypes{
+    ActivityType::GPU_MEMCPY,
+    ActivityType::GPU_MEMSET,
+    ActivityType::CONCURRENT_KERNEL,
+    ActivityType::XPU_RUNTIME,
+    ActivityType::EXTERNAL_CORRELATION,
+    ActivityType::OVERHEAD,
 };
 
 const std::string& XPUActivityProfiler::name() const {
   return name_;
 }
 
-const std::set<act_t>& XPUActivityProfiler::availableActivities() const {
+const std::set<ActivityType>& XPUActivityProfiler::availableActivities() const {
   throw std::runtime_error(
       "The availableActivities is legacy method and should not be called by kineto");
   return kXpuTypes;
@@ -157,7 +157,7 @@ const std::set<act_t>& XPUActivityProfiler::availableActivities() const {
 
 std::unique_ptr<libkineto::IActivityProfilerSession> XPUActivityProfiler::
     configure(
-        const std::set<act_t>& activity_types,
+        const std::set<ActivityType>& activity_types,
         const libkineto::Config& config) {
   return std::make_unique<XpuptiActivityProfilerSession>(
       XpuptiActivityApi::singleton(), config, activity_types);
@@ -167,7 +167,7 @@ std::unique_ptr<libkineto::IActivityProfilerSession> XPUActivityProfiler::
     configure(
         int64_t ts_ms,
         int64_t duration_ms,
-        const std::set<act_t>& activity_types,
+        const std::set<ActivityType>& activity_types,
         const libkineto::Config& config) {
   AsyncProfileStartTime_ = ts_ms;
   AsyncProfileEndTime_ = ts_ms + duration_ms;

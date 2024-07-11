@@ -62,12 +62,15 @@ IF (NOT ROCM_SOURCE_DIR AND NOT ROCTRACER_INCLUDE_DIR)
 endif()
 
 # Define file lists
-if (LIBKINETO_NOCUPTI AND LIBKINETO_NOROCTRACER)
+if (LIBKINETO_NOCUPTI AND LIBKINETO_NOROCTRACER AND LIBKINETO_NOXPUPTI)
     get_filelist("get_libkineto_cpu_only_srcs(with_api=False)" LIBKINETO_SRCS)
     message(INFO " CUPTI unavailable or disabled - not building GPU profilers")
 elseif(NOT LIBKINETO_NOROCTRACER)
     get_filelist("get_libkineto_roctracer_srcs(with_api=False)" LIBKINETO_SRCS)
     message(INFO " Building with roctracer")
+elseif(NOT LIBKINETO_NOXPUPTI)
+    get_filelist("get_libkineto_xpupti_srcs(with_api=False)" LIBKINETO_SRCS)
+    message(INFO " Building with xpupti")
 else()
     get_filelist("get_libkineto_cupti_srcs(with_api=False)" LIBKINETO_SRCS)
 endif()
@@ -98,6 +101,9 @@ else()
 endif()
 if (NOT LIBKINETO_NOCUPTI)
   list(APPEND KINETO_COMPILE_OPTIONS "-DHAS_CUPTI")
+endif()
+if (NOT LIBKINETO_NOXPUPTI)
+  list(APPEND KINETO_COMPILE_OPTIONS "-DHAS_XPUPTI")
 endif()
 if (CUDA_nvperf_host_LIBRARY)
   list(APPEND KINETO_COMPILE_OPTIONS "-DUSE_CUPTI_RANGE_PROFILER")
@@ -165,7 +171,8 @@ target_include_directories(kineto_base PUBLIC
       $<BUILD_INTERFACE:${CUPTI_INCLUDE_DIR}>
       $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
       $<BUILD_INTERFACE:${ROCTRACER_INCLUDE_DIR}>
-      $<BUILD_INTERFACE:${ROCM_INCLUDE_DIRS}>)
+      $<BUILD_INTERFACE:${ROCM_INCLUDE_DIRS}>
+      $<BUILD_INTERFACE:${SYCL_INCLUDE_DIR}>)
 
 target_include_directories(kineto_api PUBLIC
       $<BUILD_INTERFACE:${FMT_INCLUDE_DIR}>
@@ -201,6 +208,9 @@ if(NOT LIBKINETO_NOCUPTI)
 endif()
 if(CUDA_nvperf_host_LIBRARY)
   target_link_libraries(kineto "${CUDA_nvperf_host_LIBRARY}")
+endif()
+if(NOT LIBKINETO_NOXPUPTI)
+  target_link_libraries(kineto Pti::pti_view)
 endif()
 target_link_libraries(kineto $<BUILD_INTERFACE:fmt::fmt-header-only>)
 add_dependencies(kineto fmt::fmt-header-only)

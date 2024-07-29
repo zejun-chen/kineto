@@ -42,6 +42,21 @@ extern "C" {
 
 namespace libkineto {
 
+using ChildActivityProfilerFactory =
+  std::function<std::unique_ptr<IActivityProfiler>()>;
+
+namespace plugin {
+  void SetKinetoPluginRegister(ChildActivityProfilerFactory factory);
+
+  void ClearKinetoPluginFactory();
+
+  struct KinetoPluginRegisterer {
+    explicit KinetoPluginRegisterer(ChildActivityProfilerFactory factory) {
+      SetKinetoPluginRegister(factory);
+    }
+  };
+}
+
 class Config;
 class ConfigLoader;
 
@@ -66,9 +81,6 @@ struct CpuTraceBuffer {
   int gpuOpCount;
   std::deque<std::unique_ptr<GenericTraceActivity>> activities;
 };
-
-using ChildActivityProfilerFactory =
-  std::function<std::unique_ptr<IActivityProfiler>()>;
 
 class LibkinetoApi {
  public:
@@ -124,26 +136,11 @@ class LibkinetoApi {
     return configLoader_;
   }
 
-  void registerProfilerFactory(
-      ChildActivityProfilerFactory factory) {
-    if (isProfilerInitialized()) {
-      activityProfiler_->addChildActivityProfiler(factory());
-    } else {
-      childProfilerFactories_.push_back(factory);
-    }
-  }
+  void registerProfilerFactory(ChildActivityProfilerFactory factory);
 
  private:
 
-  void initChildActivityProfilers() {
-    if (!isProfilerInitialized()) {
-      return;
-    }
-    for (const auto& factory : childProfilerFactories_) {
-      activityProfiler_->addChildActivityProfiler(factory());
-    }
-    childProfilerFactories_.clear();
-  }
+  void initChildActivityProfilers();
 
   // Client is initialized once both it and libkineto has registered
   void initClientIfRegistered();
@@ -152,8 +149,6 @@ class LibkinetoApi {
   std::unique_ptr<ActivityProfilerInterface> activityProfiler_{};
   ClientInterface* client_{};
   int32_t clientRegisterThread_{0};
-
-  std::vector<ChildActivityProfilerFactory> childProfilerFactories_;
 };
 
 // Singleton

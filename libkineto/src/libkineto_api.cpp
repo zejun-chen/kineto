@@ -13,6 +13,21 @@
 
 namespace libkineto {
 
+namespace plugin {
+  static std::vector<ChildActivityProfilerFactory> plugin_factories;
+  static std::mutex mutex;
+
+  void SetKinetoPluginRegister(ChildActivityProfilerFactory factory) {
+    std::scoped_lock<std::mutex> lock(mutex);
+    plugin_factories.push_back(factory);
+  }
+
+  void ClearKinetoPluginFactory() {
+    std::scoped_lock<std::mutex> lock(mutex);
+    plugin_factories.clear();
+  }
+}
+
 LibkinetoApi& api() {
   static LibkinetoApi instance(ConfigLoader::instance());
   return instance;
@@ -42,6 +57,25 @@ void LibkinetoApi::registerClient(ClientInterface* client) {
   // Assume here that the external init callback is *not* threadsafe
   // and only call it if it's the same thread that called registerClient
   clientRegisterThread_ = threadId();
+}
+
+void LibkinetoApi::initChildActivityProfilers() {
+  if (!isProfilerInitialized()) {
+    return;
+  }
+  for (const auto& factory : plugin::plugin_factories) {
+    activityProfiler_->addChildActivityProfiler(factory());
+  }
+  plugin::ClearKinetoPluginFactory();
+}
+
+void LibkinetoApi::registerProfilerFactory(
+  ChildActivityProfilerFactory factory) {
+  if (isProfilerInitialized()) {
+    activityProfiler_->addChildActivityProfiler(factory());
+  } else {
+    plugin::SetKinetoPluginRegister(factory);
+  }
 }
 
 } // namespace libkineto

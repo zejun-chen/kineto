@@ -105,8 +105,8 @@ void XpuptiActivityProfilerSession::handleRuntimeActivity(
   traceBuffer_.emplace_activity(
       traceBuffer_.span, ActivityType::XPU_RUNTIME, std::string(activity->_name));
   auto& runtime_activity = traceBuffer_.activities.back();
-  runtime_activity->startTime = activity->_start_timestamp;
-  runtime_activity->endTime = activity->_end_timestamp;
+  runtime_activity->startTime = convertTimeStampValue(activity->_start_timestamp);
+  runtime_activity->endTime = convertTimeStampValue(activity->_end_timestamp);
   runtime_activity->id = activity->_correlation_id;
   runtime_activity->device = activity->_process_id;
   runtime_activity->resource = activity->_thread_id;
@@ -142,8 +142,8 @@ void XpuptiActivityProfilerSession::handleKernelActivity(
       ActivityType::CONCURRENT_KERNEL,
       std::string(activity->_name));
   auto& kernel_activity = traceBuffer_.activities.back();
-  kernel_activity->startTime = activity->_start_timestamp;
-  kernel_activity->endTime = activity->_end_timestamp;
+  kernel_activity->startTime = convertTimeStampValue(activity->_start_timestamp);
+  kernel_activity->endTime = convertTimeStampValue(activity->_end_timestamp);
   kernel_activity->id = activity->_correlation_id;
   kernel_activity->device = getDeviceIdxFromUUID(activity->_device_uuid);
   kernel_activity->resource = getMappedQueueId(activity->_sycl_queue_id);
@@ -185,11 +185,10 @@ inline std::string memcpyName(
       ptiViewMemoryTypeToString(dst));
 }
 
-template <class pti_view_memory_record_type>
-inline std::string bandwidth(pti_view_memory_record_type* activity) {
-  auto duration = activity->_end_timestamp - activity->_start_timestamp;
-  auto bytes = activity->_bytes;
-  return duration == 0 ? "\"N/A\"" : fmt::format("{}", bytes * 1.0 / duration);
+inline std::string bandwidth(uint64_t bytes, uint64_t duration) {
+  auto calBytesGB = bytes / 1024.0 / 1024.0 / 1024.0;
+  auto calDurationS = duration / 1000.0 / 1000.0 / 1000.0;
+  return duration == 0 ? "\"N/A\"" : fmt::format("{}", calBytesGB / calDurationS);
 }
 
 void XpuptiActivityProfilerSession::handleMemcpyActivity(
@@ -205,8 +204,8 @@ void XpuptiActivityProfilerSession::handleMemcpyActivity(
       memcpyName(
           activity->_memcpy_type, activity->_mem_src, activity->_mem_dst));
   auto& memcpy_activity = traceBuffer_.activities.back();
-  memcpy_activity->startTime = activity->_start_timestamp;
-  memcpy_activity->endTime = activity->_end_timestamp;
+  memcpy_activity->startTime = convertTimeStampValue(activity->_start_timestamp);
+  memcpy_activity->endTime = convertTimeStampValue(activity->_end_timestamp);
   memcpy_activity->id = activity->_correlation_id;
   memcpy_activity->device = getDeviceIdxFromUUID(activity->_device_uuid);
   memcpy_activity->resource = getMappedQueueId(activity->_sycl_queue_id);
@@ -227,7 +226,7 @@ void XpuptiActivityProfilerSession::handleMemcpyActivity(
   memcpy_activity->addMetadata("correlation", activity->_correlation_id);
   memcpy_activity->addMetadata("memory opration id", activity->_mem_op_id);
   memcpy_activity->addMetadata("bytes", activity->_bytes);
-  memcpy_activity->addMetadata("memory bandwidth (GB/s)", bandwidth(activity));
+  memcpy_activity->addMetadata("memory bandwidth (GB/s)", bandwidth(activity->_bytes, memcpy_activity->duration()));
 
   checkTimestampOrder(&*memcpy_activity);
   if (outOfRange(*memcpy_activity)) {
@@ -253,8 +252,8 @@ void XpuptiActivityProfilerSession::handleMemsetActivity(
       fmt::format(
           "Memset ({})", ptiViewMemoryTypeToString(activity->_mem_type)));
   auto& memset_activity = traceBuffer_.activities.back();
-  memset_activity->startTime = activity->_start_timestamp;
-  memset_activity->endTime = activity->_end_timestamp;
+  memset_activity->startTime = convertTimeStampValue(activity->_start_timestamp);
+  memset_activity->endTime = convertTimeStampValue(activity->_end_timestamp);
   memset_activity->id = activity->_correlation_id;
   memset_activity->device = getDeviceIdxFromUUID(activity->_device_uuid);
   memset_activity->resource = getMappedQueueId(activity->_sycl_queue_id);
@@ -275,7 +274,7 @@ void XpuptiActivityProfilerSession::handleMemsetActivity(
   memset_activity->addMetadata("correlation", activity->_correlation_id);
   memset_activity->addMetadata("memory opration id", activity->_mem_op_id);
   memset_activity->addMetadata("bytes", activity->_bytes);
-  memset_activity->addMetadata("memory bandwidth (GB/s)", bandwidth(activity));
+  memset_activity->addMetadata("memory bandwidth (GB/s)", bandwidth(activity->_bytes, memset_activity->duration()));
 
   checkTimestampOrder(&*memset_activity);
   if (outOfRange(*memset_activity)) {

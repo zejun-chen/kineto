@@ -25,8 +25,29 @@ XpuptiActivityProfilerSession::XpuptiActivityProfilerSession(
     const libkineto::Config& config,
     const std::set<ActivityType>& activity_types)
     : xpti_(xpti), config_(config.clone()), activity_types_(activity_types) {
+#if HAS_XPUPTI
   enumDeviceUUIDs();
   xpti_.setMaxBufferSize(config_->activitiesMaxGpuBufferSize());
+
+  // set the time method to XPU PTI to align with the torch
+#ifdef _WIN32
+    XPUPTI_CALL(
+        ptiViewSetTimestampCallback([]() -> uint64_t {
+          auto system = std::chrono::time_point_cast<std::chrono::nanoseconds>(
+              std::chrono::system_clock::now());
+          return system.time_since_epoch().count();
+        }));
+#else
+    use_xpupti_tsc = config.getTSCTimestampFlag();
+    if (use_xpupti_tsc) {
+      XPUPTI_CALL(
+          ptiViewSetTimestampCallback([]() -> uint64_t {
+            return getApproximateTime();
+          }));
+    }
+#endif
+#endif
+
   xpti_.enableXpuptiActivities(activity_types_);
 }
 
@@ -143,6 +164,21 @@ DeviceIndex_t XpuptiActivityProfilerSession::getDeviceIdxFromUUID(
     return static_cast<DeviceIndex_t>(0);
   }
   return static_cast<DeviceIndex_t>(std::distance(deviceUUIDs_.begin(), it));
+}
+
+// The time convert function is converting for non-windows platform.
+// It is using the torch-defined converting.
+uint64_t XpuptiActivityProfilerSession::convertTimeStampValue(
+  const uint64_t timeStampValue) {
+#if defined(_WIN32)
+  return timeStampValue;
+#else
+  if (use_xpupti_tsc){
+    return get_time_converter()(timeStampValue);
+  } else {
+    return timeStampValue;
+  }
+#endif
 }
 
 // =========== ActivityProfiler Public Methods ============= //

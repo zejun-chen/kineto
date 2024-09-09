@@ -3,6 +3,7 @@
 #include <mutex>
 #include <unordered_map>
 
+#include "../../ApproximateClock.h"
 #include "XpuptiProfilerMacros.h"
 
 namespace KINETO_NAMESPACE {
@@ -74,7 +75,12 @@ class XpuptiActivityProfilerSession : public libkineto::IActivityProfilerSession
   // for profiling activity creation
   DeviceIndex_t getDeviceIdxFromUUID(const uint8_t deviceUUID[16]);
 
+  // time convert. Internally use the overrided torch converter
+  uint64_t convertTimeStampValue(const uint64_t timeStampValue);
+
  private:
+  // align semantics with use_cupti_tsc
+  bool use_xpupti_tsc{true};
   static uint32_t iterationCount_;
   static std::vector<std::array<unsigned char, 16>> deviceUUIDs_;
   static std::vector<std::string> correlateRuntimeOps_;
